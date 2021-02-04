@@ -22,11 +22,6 @@ async function run(): Promise<void> {
     const thresholdInBytes = bytes(threshold)
     const incomingWebhookUrl = process.env.INCOMING_WEBHOOK_URL
 
-    if (typeof incomingWebhookUrl === 'undefined') {
-      core.setFailed('set')
-      return
-    }
-
     core.debug(new Date().toTimeString())
 
     const files = await glob.sync(pattern)
@@ -36,19 +31,25 @@ async function run(): Promise<void> {
         return [...prev, [file, size]]
       }, Promise.resolve<[string, number][]>([]))
 
-    files.filter(([/** file */, size]) => size > thresholdInBytes)
+    const found = files.filter(([/** file */, size]) => size > thresholdInBytes)
 
-    const message = {
+    if (typeof incomingWebhookUrl !== 'undefined' && found.length > 0) {
+      const message = {
 
+      }
+
+      const res = await fetch(incomingWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: JSON.stringify(message)
+      })
     }
 
-    const res = await fetch(incomingWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-      body: JSON.stringify(message)
-    })
+    if (found.length > 0) {
+      core.setFailed('')
+    }
 
     core.debug(new Date().toTimeString())
 
